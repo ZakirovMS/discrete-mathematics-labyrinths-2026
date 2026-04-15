@@ -3,13 +3,48 @@
 #include <algorithm>
 #include <stdexcept>
 #include <functional>
+#include <random>
+#include <numeric>
 
-namespace
-{
+namespace {
+ class DSU {
+  private:
+    std::vector<size_t> parent;
+    std::vector<size_t> rank;
+  public:
+    DSU(size_t n) {
+      parent.resize(n);
+      rank.resize(n, 0);
+      std::iota(parent.begin(), parent.end(), 0);
+    }
+    size_t find(size_t i) {
+      if (parent[i] == i) return i;
+      return parent[i] = find(parent[i]);
+    }
+    void unite(size_t i, size_t j) {
+      size_t root_i = find(i);
+      size_t root_j = find(j);
+      if (root_i != root_j) {
+        if (rank[root_i] < rank[root_j]) {
+          parent[root_i] = root_j;
+        } else if (rank[root_i] > rank[root_j]) {
+          parent[root_j] = root_i;
+        } else {
+          parent[root_j] = root_i;
+          rank[root_i]++;
+        }
+      }
+    }
+ };
 
-}
+ struct Edge {
+    size_t r1, c1; // ID комнаты 1
+    size_t r2, c2; // ID комнаты 2
+    size_t wr, wc; // Координаты стены в матрице
+  };
+};
 
-void Labyrinth::Matrix::clearMetadata()
+void zakirov::Matrix::clearMetadata()
 {
   for (auto i = ties_.begin(); i != ties_.end(); ++i)
   {
@@ -125,7 +160,7 @@ Labyrinth::ArrayWrapper< Labyrinth::CaveComponent > & Labyrinth::Matrix::getFiel
 {
   return field_;
 }
-    
+
 void Labyrinth::Matrix::showMatrix()
 {
   std::cout << scopes_.first << ' ' << scopes_.second << '\n' << "connects:";
@@ -256,4 +291,82 @@ void Labyrinth::Matrix::showTechInfo()
 
     std::cout << '\n';
   }
+}
+
+void zakirov::Matrix::generateKruskalMaze(size_t rooms_rows, size_t rooms_cols)
+{
+  size_t grid_rows = rooms_rows * 2 + 1;
+  size_t grid_cols = rooms_cols * 2 + 1;
+
+  // 1. Инициализируем размеры и выделяем память под поле
+  scopes_ = std::make_pair(grid_rows, grid_cols);
+  field_ = ArrayWrapper< CaveComponent >(grid_rows, grid_cols);
+  ties_.clear(); // Очищаем старые связи, если матрица переиспользуется
+
+  // 2. Заполняем все поле стенами
+  for (size_t i = 0; i < grid_rows; ++i)
+  {
+    for (size_t j = 0; j < grid_cols; ++j)
+    {
+      field_(i, j).setCell('#');
+      field_(i, j).setDist(std::numeric_limits< size_t >::max());
+    }
+  }
+
+  // 3. Вырезаем изолированные комнаты (клетки с нечетными индексами)
+  for (size_t r = 0; r < rooms_rows; ++r)
+  {
+    for (size_t c = 0; c < rooms_cols; ++c)
+    {
+      field_(r * 2 + 1, c * 2 + 1).setCell('.');
+    }
+  }
+
+  // 4. Собираем список всех внутренних стен
+  std::vector< Edge > edges;
+  for (size_t r = 0; r < rooms_rows; ++r)
+  {
+    for (size_t c = 0; c < rooms_cols; ++c)
+    {
+      if (c < rooms_cols - 1) // Вертикальная стена справа
+      {
+        edges.push_back({r, c, r, c + 1, r * 2 + 1, c * 2 + 2});
+      }
+      if (r < rooms_rows - 1) // Горизонтальная стена снизу
+      {
+        edges.push_back({r, c, r + 1, c, r * 2 + 2, c * 2 + 1});
+      }
+    }
+  }
+
+  // 5. Перемешиваем стены для рандомизации
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(edges.begin(), edges.end(), g);
+
+  // 6. Применяем DSU (Алгоритм Крускала)
+  DSU dsu(rooms_rows * rooms_cols);
+  auto get_id = [&](size_t r, size_t c) { return r * rooms_cols + c; };
+
+  for (size_t i = 0; i < edges.size(); ++i)
+  {
+    size_t id1 = get_id(edges[i].r1, edges[i].c1);
+    size_t id2 = get_id(edges[i].r2, edges[i].c2);
+
+    if (dsu.find(id1) != dsu.find(id2))
+    {
+      dsu.unite(id1, id2);
+      field_(edges[i].wr, edges[i].wc).setCell('.'); // Ломаем стену
+    }
+  }
+
+  // 7. Устанавливаем вход (+) и выход (=)
+  entry_ = std::make_pair(0, 1);
+  field_(0, 1).setCell('+');
+
+  std::pair<size_t, size_t> exit_pos = std::make_pair(grid_rows - 1, grid_cols - 2);
+  field_(exit_pos.first, exit_pos.second).setCell('=');
+
+  // Добавляем выход в список ties_ (как это делает ваш оператор >>)
+  setConnect('=');
 }
