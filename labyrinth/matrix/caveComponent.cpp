@@ -52,7 +52,7 @@ bool Labyrinth::CaveComponent::isExit() const noexcept
 
 bool Labyrinth::CaveComponent::isPassable() const noexcept
 {
-  return isExit() || isPath();
+  return isExit() || isPath() || isEntry();
 }
 
 bool Labyrinth::CaveComponent::isElement(char symbol) const noexcept

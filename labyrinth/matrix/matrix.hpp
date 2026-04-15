@@ -4,7 +4,6 @@
 #include <vector>
 #include <iostream>
 #include <list>
-#include "node.hpp"
 #include "caveComponent.hpp"
 #include "wrapper.hpp"
 
@@ -22,6 +21,7 @@ namespace Labyrinth
     std::list< std::pair < char, size_t > > & getConnect();
     void setField(ArrayWrapper< CaveComponent > & field);
     ArrayWrapper< CaveComponent > & getField();
+    void writePath(char to);
     void waveAlgo();
     void showMatrix();
     void clearMetadata();
