@@ -222,13 +222,14 @@ void Labyrinth::Matrix::waveAlgo()
         field_(wave[i].first, wave[i].second).setDist(counter);
       }
 
-      if (field_(wave[i].first, wave[i].second).isExit())
-      {
-        auto it = std::find(ties_.begin(), ties_.end(), std::make_pair(field_(wave[i].first, wave[i].second).getCell(), std::numeric_limits< size_t >::max()));
-        if (it != ties_.end())
-        {
-          it->second = counter;
-        }
+      if (field_(wave[i].first, wave[i].second).isExit()) {
+          char exitChar = field_(wave[i].first, wave[i].second).getCell();
+          // update **every** still‑unfilled entry that has this character
+          for (auto it = ties_.begin(); it != ties_.end(); ++it) {
+              if (it->first == exitChar && it->second == std::numeric_limits< size_t >::max()) {
+                  it->second = counter;            // distance of this exit instance
+              }
+          }
       }
     }
 
@@ -326,6 +327,12 @@ void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, 
     field_(entry_.first, entry_.second).setCell(entry_sym);
     pts.pop_back();
   }
+
+  if (pts.size() < exits_sym.size()) {
+    throw std::runtime_error("generateKruskalMaze: not enough walkable cells for the requested exits");
+  }
+
+
   for (char ex : exits_sym) {
     if (!pts.empty()) {
       field_(pts.back().first, pts.back().second).setCell(ex);
@@ -335,50 +342,47 @@ void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, 
   }
 }
 
-void Labyrinth::Matrix::writePath(char to)
-{
-  std::pair<size_t, size_t> curr;
-  size_t d = std::numeric_limits<size_t>::max();
-  bool found = false;
+void Labyrinth::Matrix::writePath(char to) {
+    // ---------- 1. locate the exit cell with minimal distance ----------
+    std::pair<size_t, size_t> curr = {0, 0};
+    size_t d = std::numeric_limits<size_t>::max();
+    bool found = false;
 
-  // 1. Находим целевой символ
-  for (size_t i = 0; i < scopes_.first; ++i) {
-    for (size_t j = 0; j < scopes_.second; ++j) {
-      if (field_(i, j).getCell() == to) {
-        curr = {i, j};
-        d = field_(i, j).getDist();
-        found = true; break;
-      }
-    }
-    if (found) break;
-  }
-
-  if (!found || d == std::numeric_limits<size_t>::max()) return;
-
-  // 2. Идем назад до дистанции 0 (старт)
-  while (d > 1) {
-    d--;
-    size_t r = curr.first;
-    size_t c = curr.second;
-
-    int dr[] = {-1, 1, 0, 0};
-    int dc[] = {0, 0, -1, 1};
-
-    for (int i = 0; i < 4; ++i) {
-      size_t nr = r + dr[i];
-      size_t nc = c + dc[i];
-
-      if (nr < scopes_.first && nc < scopes_.second) {
-        // Ищем соседа, у которого дистанция на 1 меньше и который проходим
-        if (field_(nr, nc).getDist() == d && field_(nr, nc).isPassable()) {
-          curr = {nr, nc};
-          // Если это обычная тропа (не буква), ставим звездочку
-          if (field_(nr, nc).isPath()) {
-            field_(nr, nc).setCell('*');
-          }
-          break;
+    for (size_t i = 0; i < scopes_.first; ++i) {
+        for (size_t j = 0; j < scopes_.second; ++j) {
+            if (field_(i, j).getCell() == to) {
+                size_t cellDist = field_(i, j).getDist();
+                if (!found || cellDist < d) {
+                    curr = {i, j};
+                    d = cellDist;
+                    found = true;
+                }
+            }
         }
-      }
     }
-  }
+
+    if (!found || d == std::numeric_limits<size_t>::max())
+        return;                 // nothing to do
+
+    // ---------- 2. walk back to distance 1 (the entry) ----------
+    while (d > 1) {
+        --d;
+        size_t r = curr.first;
+        size_t c = curr.second;
+        int dr[] = {-1, 1, 0, 0};
+        int dc[] = {0, 0, -1, 1};
+
+        for (int k = 0; k < 4; ++k) {
+            size_t nr = r + dr[k];
+            size_t nc = c + dc[k];
+            if (nr < scopes_.first && nc < scopes_.second) {
+                if (field_(nr, nc).getDist() == d && field_(nr, nc).isPassable()) {
+                    curr = {nr, nc};
+                    if (field_(nr, nc).isPath())          // only ordinary corridor
+                        field_(nr, nc).setCell('*');
+                    break;                                 // next step
+                }
+            }
+        }
+    }
 }

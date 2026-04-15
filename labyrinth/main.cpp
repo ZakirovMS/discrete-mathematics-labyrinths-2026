@@ -20,7 +20,7 @@ int main()
 
   Labyrinth::Matrix layerC;
   layerC.setName("C");
-  layerC.generateKruskalMaze(9, 13, '+', {'D'});
+  layerC.generateKruskalMaze(9, 13, '+', {'D', 'D', 'D'});
   layerC.waveAlgo();
   layerC.writePath('D');
 
