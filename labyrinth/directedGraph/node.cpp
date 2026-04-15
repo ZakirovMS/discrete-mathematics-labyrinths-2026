@@ -1,27 +1,27 @@
 #include "node.hpp"
 #include <iostream>
 
-void zakirov::Node::setName(char name)
+void Labyrinth::Node::setName(char name)
 {
   name_ = name;
 }
 
-char zakirov::Node::getName()
+char Labyrinth::Node::getName()
 {
   return name_;
 }
 
-void zakirov::Node::addRib(char node_to, size_t distance)
+void Labyrinth::Node::addRib(char node_to, size_t distance)
 {
   connect_[node_to] = distance;
 }
 
-const std::map< char, size_t > zakirov::Node::getRibs() const
+const std::map< char, size_t > Labyrinth::Node::getRibs() const
 {
   return connect_;
 }
 
-void zakirov::Node::showRibs()
+void Labyrinth::Node::showRibs()
 {
   if (connect_.empty())
   {
@@ -38,12 +38,12 @@ void zakirov::Node::showRibs()
   }
 }
 
-void zakirov::Node::setPrevious(Node * previous)
+void Labyrinth::Node::setPrevious(Node * previous)
 {
   previous_ = previous;
 }
 
-zakirov::Node * zakirov::Node::getPrevious()
+Labyrinth::Node * Labyrinth::Node::getPrevious()
 {
   return previous_;
 }

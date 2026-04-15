@@ -24,22 +24,22 @@ namespace
   }
 }
 
-void zakirov::DirectedGraph::setScopes(char entry, char exit)
+void Labyrinth::DirectedGraph::setScopes(char entry, char exit)
 {
   scopes_ = std::make_pair(entry, exit);
 }
 
-char zakirov::DirectedGraph::getEntry()
+char Labyrinth::DirectedGraph::getEntry()
 {
   return scopes_.first;
 }
 
-char zakirov::DirectedGraph::getExit()
+char Labyrinth::DirectedGraph::getExit()
 {
   return scopes_.second;
 }
 
-size_t zakirov::DirectedGraph::getDistance()
+size_t Labyrinth::DirectedGraph::getDistance()
 {
   std::list< char > searched;
   std::map< char, size_t > distances;
@@ -74,7 +74,7 @@ size_t zakirov::DirectedGraph::getDistance()
   return distances[getExit()];
 }
 
-void zakirov::DirectedGraph::getPath()
+void Labyrinth::DirectedGraph::getPath()
 {
   std::list< char > sequence;
   Node * current = graph_[getExit()].getPrevious();
@@ -96,17 +96,17 @@ void zakirov::DirectedGraph::getPath()
   std::cout << '\n';
 }
 
-void zakirov::DirectedGraph::addNode(char name)
+void Labyrinth::DirectedGraph::addNode(char name)
 {
   graph_[name].setName(name);
 }
 
-void zakirov::DirectedGraph::connectNodes(char node_from, char node_to, size_t distance)
+void Labyrinth::DirectedGraph::connectNodes(char node_from, char node_to, size_t distance)
 {
   graph_[node_from].addRib(node_to, distance);
 }
 
-void zakirov::DirectedGraph::showGraph()
+void Labyrinth::DirectedGraph::showGraph()
 {
   for (auto i = graph_.begin(); i != graph_.end(); ++i)
   {

@@ -28,7 +28,6 @@ namespace Labyrinth
     void showTechInfo();
   private:
     bool expandWave(std::vector< std::pair< size_t, size_t > > & from, std::vector< std::pair< size_t, size_t > > & to);
-    std::pair< size_t, size_t > expandCell(size_t row, size_t col);
     std::pair< size_t, size_t > scopes_;
     std::pair< size_t, size_t > entry_;
     ArrayWrapper< CaveComponent > field_;
