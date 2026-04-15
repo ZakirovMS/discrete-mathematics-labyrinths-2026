@@ -14,6 +14,9 @@ namespace Labyrinth
   {
   public:
     Matrix() = default;
+    void setName(const std::string& name) { name_ = name; }
+    std::string getName() const { return name_; }
+
     void setScopes(std::pair< size_t, size_t > scope);
     std::pair< size_t, size_t > getScopes();
     void setEntry(std::pair< size_t, size_t > entry);
@@ -23,12 +26,14 @@ namespace Labyrinth
     void setField(ArrayWrapper< CaveComponent > & field);
     ArrayWrapper< CaveComponent > & getField();
 
-    void generateKruskalMaze(size_t rooms_rows, size_t rooms_cols);
+    void generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym);
 
     void waveAlgo();
     void showMatrix();
     void clearMetadata();
     void showTechInfo();
+
+    void writePath(char to);
   private:
     bool expandWave(std::vector< std::pair< size_t, size_t > > & from, std::vector< std::pair< size_t, size_t > > & to);
     std::pair< size_t, size_t > expandCell(size_t row, size_t col);
@@ -36,6 +41,7 @@ namespace Labyrinth
     std::pair< size_t, size_t > entry_;
     ArrayWrapper< CaveComponent > field_;
     std::list< std::pair < char, size_t > > ties_;
+    std::string name_;
   };
 
   std::istream & operator>>(std::istream & in, Matrix & layer_c);

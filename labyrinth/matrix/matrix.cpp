@@ -60,65 +60,34 @@ void Labyrinth::Matrix::clearMetadata()
   }
 }
 
-//Get rid of duplication
-bool Labyrinth::Matrix::expandWave(std::vector< std::pair < size_t, size_t > > & from, std::vector< std::pair < size_t, size_t > > & to)
+bool Labyrinth::Matrix::expandWave(std::vector<std::pair<size_t, size_t>>& from, std::vector<std::pair<size_t, size_t>>& to)
 {
-  size_t addedCells = 0;
-  bool returnable = false;
+  bool added = false;
+  to.clear();
 
-  std::vector< std::pair < size_t, size_t > > stub;
+  for (const auto& curr : from) {
+    size_t r = curr.first;
+    size_t c = curr.second;
 
-  for (size_t i = 0; i < from.size(); ++i)
-  {
-    size_t row = from[i].first;
-    size_t col = from[i].second;
+    // Смещения: вверх, вниз, влево, вправо
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
 
-    if (field_(row - 1, col).isPassable() && !field_(row - 1, col).isVisited())
-    {
-      stub.push_back(std::make_pair(row - 1, col));
-      field_(row - 1, col).visitCell();
-      ++addedCells;
-    }
-    if (field_(row + 1, col).isPassable() && !field_(row + 1, col).isVisited())
-    {
-      stub.push_back(std::make_pair(row + 1, col));
-      field_(row + 1, col).visitCell();
-      ++addedCells;
-    }
-    if (field_(row, col - 1).isPassable() && !field_(row, col - 1).isVisited())
-    {
-      stub.push_back(std::make_pair(row, col - 1));
-      field_(row, col - 1).visitCell();
-      ++addedCells;
-    }
-    if (field_(row, col + 1).isPassable() && !field_(row, col + 1).isVisited())
-    {
-      stub.push_back(std::make_pair(row, col + 1));
-      field_(row, col + 1).visitCell();
-      ++addedCells;
-    }
+    for (int i = 0; i < 4; ++i) {
+      size_t nr = r + dr[i];
+      size_t nc = c + dc[i];
 
-
-    if (!addedCells)
-    {
-      stub.push_back(std::make_pair(from[i].first, from[i].second));
-    }
-    else
-    {
-      addedCells = 0;
-      returnable = true;
+      // Проверка границ и проходимости (не стена)
+      if (nr < scopes_.first && nc < scopes_.second) {
+        if (field_(nr, nc).isPassable() && !field_(nr, nc).isVisited()) {
+          field_(nr, nc).visitCell(); // Помечаем как посещенную
+          to.push_back({nr, nc});
+          added = true;
+        }
+      }
     }
   }
-
-  //tech remove
-  for (size_t i = 0; i < stub.size(); ++i)
-  {
-    std::cout << '(' << stub[i].first << "; " << stub[i].second << ") ";
-  }
-  std::cout << '\n';
-
-  std::swap(stub, to);
-  return returnable;
+  return added;
 }
 
 void Labyrinth::Matrix::setScopes(std::pair< size_t, size_t > scope)
@@ -293,80 +262,119 @@ void Labyrinth::Matrix::showTechInfo()
   }
 }
 
-void Labyrinth::Matrix::generateKruskalMaze(size_t rooms_rows, size_t rooms_cols)
+// Генерация БЕЗ окантовки стенами
+void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym)
 {
-  size_t grid_rows = rooms_rows * 2 + 1;
-  size_t grid_cols = rooms_cols * 2 + 1;
-
-  // 1. Инициализируем размеры и выделяем память под поле
   scopes_ = std::make_pair(grid_rows, grid_cols);
   field_ = ArrayWrapper< CaveComponent >(grid_rows, grid_cols);
-  ties_.clear(); // Очищаем старые связи, если матрица переиспользуется
+  ties_.clear(); 
 
-  // 2. Заполняем все поле стенами
-  for (size_t i = 0; i < grid_rows; ++i)
-  {
-    for (size_t j = 0; j < grid_cols; ++j)
-    {
+  // Инициализация (сброс всего)
+  for (size_t i = 0; i < grid_rows; ++i) {
+    for (size_t j = 0; j < grid_cols; ++j) {
       field_(i, j).setCell('#');
-      field_(i, j).setDist(std::numeric_limits< size_t >::max());
+      field_(i, j).setDist(std::numeric_limits<size_t>::max());
+      // ВАЖНО: нужно обнулять visit_ в объекте CaveComponent, если там нет метода, 
+      // убедитесь, что при создании ArrayWrapper объекты создаются с visit_ = false
     }
   }
 
-  // 3. Вырезаем изолированные комнаты (клетки с нечетными индексами)
+  size_t rooms_rows = (grid_rows + 1) / 2;
+  size_t rooms_cols = (grid_cols + 1) / 2;
+
+  // Сетка комнат (0, 2, 4...)
   for (size_t r = 0; r < rooms_rows; ++r)
-  {
     for (size_t c = 0; c < rooms_cols; ++c)
-    {
-      field_(r * 2 + 1, c * 2 + 1).setCell('.');
-    }
-  }
+      field_(r * 2, c * 2).setCell('.');
 
-  // 4. Собираем список всех внутренних стен
   std::vector< Edge > edges;
-  for (size_t r = 0; r < rooms_rows; ++r)
-  {
-    for (size_t c = 0; c < rooms_cols; ++c)
-    {
-      if (c < rooms_cols - 1) // Вертикальная стена справа
-      {
-        edges.push_back({r, c, r, c + 1, r * 2 + 1, c * 2 + 2});
-      }
-      if (r < rooms_rows - 1) // Горизонтальная стена снизу
-      {
-        edges.push_back({r, c, r + 1, c, r * 2 + 2, c * 2 + 1});
-      }
+  for (size_t r = 0; r < rooms_rows; ++r) {
+    for (size_t c = 0; c < rooms_cols; ++c) {
+      if (c < rooms_cols - 1 && c * 2 + 1 < grid_cols) edges.push_back({r, c, r, c + 1, r * 2, c * 2 + 1});
+      if (r < rooms_rows - 1 && r * 2 + 1 < grid_rows) edges.push_back({r, c, r + 1, c, r * 2 + 1, c * 2});
     }
   }
 
-  // 5. Перемешиваем стены для рандомизации
   std::random_device rd;
   std::mt19937 g(rd());
   std::shuffle(edges.begin(), edges.end(), g);
 
-  // 6. Применяем DSU (Алгоритм Крускала)
   DSU dsu(rooms_rows * rooms_cols);
   auto get_id = [&](size_t r, size_t c) { return r * rooms_cols + c; };
 
-  for (size_t i = 0; i < edges.size(); ++i)
-  {
-    size_t id1 = get_id(edges[i].r1, edges[i].c1);
-    size_t id2 = get_id(edges[i].r2, edges[i].c2);
-
-    if (dsu.find(id1) != dsu.find(id2))
-    {
-      dsu.unite(id1, id2);
-      field_(edges[i].wr, edges[i].wc).setCell('.'); // Ломаем стену
+  for (const auto& e : edges) {
+    if (dsu.find(get_id(e.r1, e.c1)) != dsu.find(get_id(e.r2, e.c2))) {
+      dsu.unite(get_id(e.r1, e.c1), get_id(e.r2, e.c2));
+      field_(e.wr, e.wc).setCell('.');
     }
   }
 
-  // 7. Устанавливаем вход (+) и выход (=)
-  entry_ = std::make_pair(0, 1);
-  field_(0, 1).setCell('+');
+  // Расстановка точек входа/выхода
+  std::vector<std::pair<size_t, size_t>> pts;
+  for(size_t i=0; i<grid_rows; ++i) 
+    for(size_t j=0; j<grid_cols; ++j) 
+      if(field_(i, j).isPath()) pts.push_back({i, j});
 
-  std::pair<size_t, size_t> exit_pos = std::make_pair(grid_rows - 1, grid_cols - 2);
-  field_(exit_pos.first, exit_pos.second).setCell('=');
+  std::shuffle(pts.begin(), pts.end(), g);
 
-  // Добавляем выход в список ties_ (как это делает ваш оператор >>)
-  setConnect('=');
+  if(!pts.empty()) {
+    entry_ = pts.back();
+    field_(entry_.first, entry_.second).setCell(entry_sym);
+    pts.pop_back();
+  }
+  for(char ex : exits_sym) {
+    if(!pts.empty()) {
+      field_(pts.back().first, pts.back().second).setCell(ex);
+      setConnect(ex);
+      pts.pop_back();
+    }
+  }
+}
+
+void Labyrinth::Matrix::writePath(char to)
+{
+  std::pair<size_t, size_t> curr;
+  size_t d = std::numeric_limits<size_t>::max();
+  bool found = false;
+
+  // 1. Находим целевой символ
+  for (size_t i = 0; i < scopes_.first; ++i) {
+    for (size_t j = 0; j < scopes_.second; ++j) {
+      if (field_(i, j).getCell() == to) {
+        curr = {i, j};
+        d = field_(i, j).getDist();
+        found = true; break;
+      }
+    }
+    if (found) break;
+  }
+
+  if (!found || d == std::numeric_limits<size_t>::max()) return;
+
+  // 2. Идем назад до дистанции 0 (старт)
+  while (d > 1) {
+    d--;
+    size_t r = curr.first;
+    size_t c = curr.second;
+
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    for (int i = 0; i < 4; ++i) {
+      size_t nr = r + dr[i];
+      size_t nc = c + dc[i];
+
+      if (nr < scopes_.first && nc < scopes_.second) {
+        // Ищем соседа, у которого дистанция на 1 меньше и который проходим
+        if (field_(nr, nc).getDist() == d && field_(nr, nc).isPassable()) {
+          curr = {nr, nc};
+          // Если это обычная тропа (не буква), ставим звездочку
+          if (field_(nr, nc).isPath()) {
+            field_(nr, nc).setCell('*');
+          }
+          break; 
+        }
+      }
+    }
+  }
 }

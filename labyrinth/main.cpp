@@ -1,21 +1,30 @@
 #include <iostream>
+#include <vector>
 #include "matrix/matrix.hpp"
 
 int main()
 {
-  Labyrinth::Matrix maze;
+  std::cout << "Cave1\n";
 
-  // Генерируем лабиринт размером 10х10 КОМНАТ (итоговое поле будет 21x21)
-  maze.generateKruskalMaze(10, 10);
+  Labyrinth::Matrix layerZ;
+  layerZ.setName("Z");
+  layerZ.generateKruskalMaze(13, 13, '+', {'V'});
+  layerZ.waveAlgo();
+  layerZ.writePath('V');
 
-  std::cout << "Сгенерированный лабиринт:\n";
-  maze.showMatrix();
+  Labyrinth::Matrix layerV;
+  layerV.setName("V");
+  layerV.generateKruskalMaze(17, 17, '+', {'='});
+  layerV.waveAlgo();
+  layerV.writePath('=');
 
-  // Запускаем ваш волновой алгоритм для поиска пути
-  maze.waveAlgo();
+  std::cout << layerZ.getName() << " " << layerZ.getScopes().second << " " << layerZ.getScopes().first << "\n";
+  layerZ.showMatrix();
+  std::cout << "\n";
 
-  std::cout << "\nЛабиринт с просчитанными дистанциями:\n";
-  maze.showTechInfo();
+  std::cout << layerV.getName() << " " << layerV.getScopes().second << " " << layerV.getScopes().first << "\n";
+  layerV.showMatrix();
+  std::cout << "\n";
 
   return 0;
 }
