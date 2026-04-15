@@ -44,7 +44,7 @@ namespace {
   };
 };
 
-void zakirov::Matrix::clearMetadata()
+void Labyrinth::Matrix::clearMetadata()
 {
   for (auto i = ties_.begin(); i != ties_.end(); ++i)
   {
@@ -293,7 +293,7 @@ void Labyrinth::Matrix::showTechInfo()
   }
 }
 
-void zakirov::Matrix::generateKruskalMaze(size_t rooms_rows, size_t rooms_cols)
+void Labyrinth::Matrix::generateKruskalMaze(size_t rooms_rows, size_t rooms_cols)
 {
   size_t grid_rows = rooms_rows * 2 + 1;
   size_t grid_cols = rooms_cols * 2 + 1;

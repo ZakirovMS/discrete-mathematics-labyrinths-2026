@@ -3,7 +3,7 @@
 
 int main()
 {
-  zakirov::Matrix maze;
+  Labyrinth::Matrix maze;
 
   // Генерируем лабиринт размером 10х10 КОМНАТ (итоговое поле будет 21x21)
   maze.generateKruskalMaze(10, 10);
