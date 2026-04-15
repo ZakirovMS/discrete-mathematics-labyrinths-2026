@@ -267,14 +267,14 @@ void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, 
 {
   scopes_ = std::make_pair(grid_rows, grid_cols);
   field_ = ArrayWrapper< CaveComponent >(grid_rows, grid_cols);
-  ties_.clear(); 
+  ties_.clear();
 
   // Инициализация (сброс всего)
   for (size_t i = 0; i < grid_rows; ++i) {
     for (size_t j = 0; j < grid_cols; ++j) {
       field_(i, j).setCell('#');
       field_(i, j).setDist(std::numeric_limits<size_t>::max());
-      // ВАЖНО: нужно обнулять visit_ в объекте CaveComponent, если там нет метода, 
+      // ВАЖНО: нужно обнулять visit_ в объекте CaveComponent, если там нет метода,
       // убедитесь, что при создании ArrayWrapper объекты создаются с visit_ = false
     }
   }
@@ -311,19 +311,23 @@ void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, 
 
   // Расстановка точек входа/выхода
   std::vector<std::pair<size_t, size_t>> pts;
-  for(size_t i=0; i<grid_rows; ++i) 
-    for(size_t j=0; j<grid_cols; ++j) 
-      if(field_(i, j).isPath()) pts.push_back({i, j});
+  for (size_t i = 0; i < grid_rows; ++i) {
+    for (size_t j = 0; j < grid_cols; ++j) {
+      if (field_(i, j).isPath()) {
+        pts.push_back({i, j});
+      }
+    }
+  }
 
   std::shuffle(pts.begin(), pts.end(), g);
 
-  if(!pts.empty()) {
+  if (!pts.empty()) {
     entry_ = pts.back();
     field_(entry_.first, entry_.second).setCell(entry_sym);
     pts.pop_back();
   }
-  for(char ex : exits_sym) {
-    if(!pts.empty()) {
+  for (char ex : exits_sym) {
+    if (!pts.empty()) {
       field_(pts.back().first, pts.back().second).setCell(ex);
       setConnect(ex);
       pts.pop_back();
@@ -372,7 +376,7 @@ void Labyrinth::Matrix::writePath(char to)
           if (field_(nr, nc).isPath()) {
             field_(nr, nc).setCell('*');
           }
-          break; 
+          break;
         }
       }
     }
