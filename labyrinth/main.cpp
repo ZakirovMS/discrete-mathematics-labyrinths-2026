@@ -6,25 +6,43 @@ int main()
 {
   std::cout << "Cave1\n";
 
-  Labyrinth::Matrix layerZ;
-  layerZ.setName("Z");
-  layerZ.generateKruskalMaze(13, 13, '+', {'V'});
-  layerZ.waveAlgo();
-  layerZ.writePath('V');
+  Labyrinth::Matrix layerA;
+  layerA.setName("A");
+  layerA.generateKruskalMaze(5, 5, '+', {'B'});
+  layerA.waveAlgo();
+  layerA.writePath('B');
 
-  Labyrinth::Matrix layerV;
-  layerV.setName("V");
-  layerV.generateKruskalMaze(17, 17, '+', {'='});
-  layerV.waveAlgo();
-  layerV.writePath('=');
+  Labyrinth::Matrix layerB;
+  layerB.setName("B");
+  layerB.generateKruskalMaze(7, 7, '+', {'C'});
+  layerB.waveAlgo();
+  layerB.writePath('C');
 
-  std::cout << layerZ.getName() << " " << layerZ.getScopes().second << " " << layerZ.getScopes().first << "\n";
-  layerZ.showMatrix();
-  std::cout << "\n";
+  Labyrinth::Matrix layerC;
+  layerC.setName("C");
+  layerC.generateKruskalMaze(9, 13, '+', {'D'});
+  layerC.waveAlgo();
+  layerC.writePath('D');
 
-  std::cout << layerV.getName() << " " << layerV.getScopes().second << " " << layerV.getScopes().first << "\n";
-  layerV.showMatrix();
-  std::cout << "\n";
+  Labyrinth::Matrix layerD;
+  layerD.setName("D");
+  layerD.generateKruskalMaze(13, 13, '+', {'E'});
+  layerD.waveAlgo();
+  layerD.writePath('E');
+
+  Labyrinth::Matrix layerE;
+  layerE.setName("E");
+  layerE.generateKruskalMaze(17, 17, '+', {'='});
+  layerE.waveAlgo();
+  layerE.writePath('=');
+
+  Labyrinth::Matrix matrixes[] = {layerA, layerB, layerC, layerD, layerE};
+
+  for (Labyrinth::Matrix matrix : matrixes) {
+    std::cout << matrix.getName() << " " << matrix.getScopes().second << " " << matrix.getScopes().first << "\n";
+    matrix.showMatrix();
+    std::cout << "\n";
+  }
 
   return 0;
 }
