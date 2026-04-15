@@ -44,5 +44,11 @@ int main()
     std::cout << "\n";
   }
 
+  Labyrinth::Matrix gradualOutput;
+  gradualOutput.setName("G");
+  gradualOutput.generateKruskalMaze(7, 7, '+', {'F'}, true);
+  gradualOutput.waveAlgo();
+  gradualOutput.writePath('=');
+
   return 0;
 }

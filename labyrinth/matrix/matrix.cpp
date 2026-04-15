@@ -263,84 +263,90 @@ void Labyrinth::Matrix::showTechInfo()
   }
 }
 
-// Генерация БЕЗ окантовки стенами
-void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym)
+void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym, bool step_by_step)
 {
-  scopes_ = std::make_pair(grid_rows, grid_cols);
-  field_ = ArrayWrapper< CaveComponent >(grid_rows, grid_cols);
-  ties_.clear();
+    scopes_ = std::make_pair(grid_rows, grid_cols);
+    field_ = ArrayWrapper< CaveComponent >(grid_rows, grid_cols);
+    ties_.clear();
 
-  // Инициализация (сброс всего)
-  for (size_t i = 0; i < grid_rows; ++i) {
-    for (size_t j = 0; j < grid_cols; ++j) {
-      field_(i, j).setCell('#');
-      field_(i, j).setDist(std::numeric_limits<size_t>::max());
-      // ВАЖНО: нужно обнулять visit_ в объекте CaveComponent, если там нет метода,
-      // убедитесь, что при создании ArrayWrapper объекты создаются с visit_ = false
+    for (size_t i = 0; i < grid_rows; ++i) {
+        for (size_t j = 0; j < grid_cols; ++j) {
+            field_(i, j).setCell('#');
+            field_(i, j).setDist(std::numeric_limits<size_t>::max());
+        }
     }
-  }
 
-  size_t rooms_rows = (grid_rows + 1) / 2;
-  size_t rooms_cols = (grid_cols + 1) / 2;
+    size_t rooms_rows = (grid_rows + 1) / 2;
+    size_t rooms_cols = (grid_cols + 1) / 2;
 
-  // Сетка комнат (0, 2, 4...)
-  for (size_t r = 0; r < rooms_rows; ++r)
-    for (size_t c = 0; c < rooms_cols; ++c)
-      field_(r * 2, c * 2).setCell('.');
-
-  std::vector< Edge > edges;
-  for (size_t r = 0; r < rooms_rows; ++r) {
-    for (size_t c = 0; c < rooms_cols; ++c) {
-      if (c < rooms_cols - 1 && c * 2 + 1 < grid_cols) edges.push_back({r, c, r, c + 1, r * 2, c * 2 + 1});
-      if (r < rooms_rows - 1 && r * 2 + 1 < grid_rows) edges.push_back({r, c, r + 1, c, r * 2 + 1, c * 2});
+    for (size_t r = 0; r < rooms_rows; ++r) {
+        for (size_t c = 0; c < rooms_cols; ++c) {
+            field_(r * 2, c * 2).setCell('.');
+        }
     }
-  }
 
-  std::random_device rd;
-  std::mt19937 g(rd());
-  std::shuffle(edges.begin(), edges.end(), g);
-
-  DSU dsu(rooms_rows * rooms_cols);
-  auto get_id = [&](size_t r, size_t c) { return r * rooms_cols + c; };
-
-  for (const auto& e : edges) {
-    if (dsu.find(get_id(e.r1, e.c1)) != dsu.find(get_id(e.r2, e.c2))) {
-      dsu.unite(get_id(e.r1, e.c1), get_id(e.r2, e.c2));
-      field_(e.wr, e.wc).setCell('.');
+    std::vector< Edge > edges;
+    for (size_t r = 0; r < rooms_rows; ++r) {
+        for (size_t c = 0; c < rooms_cols; ++c) {
+            if (c < rooms_cols - 1 && c * 2 + 1 < grid_cols) {
+                edges.push_back({r, c, r, c + 1, r * 2, c * 2 + 1});
+            }
+            if (r < rooms_rows - 1 && r * 2 + 1 < grid_rows) {
+                edges.push_back({r, c, r + 1, c, r * 2 + 1, c * 2});
+            }
+        }
     }
-  }
 
-  // Расстановка точек входа/выхода
-  std::vector<std::pair<size_t, size_t>> pts;
-  for (size_t i = 0; i < grid_rows; ++i) {
-    for (size_t j = 0; j < grid_cols; ++j) {
-      if (field_(i, j).isPath()) {
-        pts.push_back({i, j});
-      }
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(edges.begin(), edges.end(), g);
+
+    DSU dsu(rooms_rows * rooms_cols);
+    auto get_id = [&](size_t r, size_t c) { return r * rooms_cols + c; };
+
+    size_t step = 0;
+    for (const auto& e : edges) {
+        if (dsu.find(get_id(e.r1, e.c1)) != dsu.find(get_id(e.r2, e.c2))) {
+            dsu.unite(get_id(e.r1, e.c1), get_id(e.r2, e.c2));
+            field_(e.wr, e.wc).setCell('.');
+            ++step;
+            if (step_by_step) {
+                std::cout << "Step " << step << ": Removed wall at (" << e.wr << "," << e.wc << ")\n";
+                showMatrix();
+                std::cout << "\n";
+            }
+        }
     }
-  }
 
-  std::shuffle(pts.begin(), pts.end(), g);
+    std::vector<std::pair<size_t, size_t>> pts;
+    for (size_t i = 0; i < grid_rows; ++i) {
+        for (size_t j = 0; j < grid_cols; ++j) {
+            if (field_(i, j).isPath()) {
+                pts.push_back({i, j});
+            }
+        }
+    }
+    std::shuffle(pts.begin(), pts.end(), g);
 
-  if (!pts.empty()) {
-    entry_ = pts.back();
-    field_(entry_.first, entry_.second).setCell(entry_sym);
-    pts.pop_back();
-  }
-
-  if (pts.size() < exits_sym.size()) {
-    throw std::runtime_error("generateKruskalMaze: not enough walkable cells for the requested exits");
-  }
-
-
-  for (char ex : exits_sym) {
     if (!pts.empty()) {
-      field_(pts.back().first, pts.back().second).setCell(ex);
-      setConnect(ex);
-      pts.pop_back();
+        entry_ = pts.back();
+        field_(entry_.first, entry_.second).setCell(entry_sym);
+        pts.pop_back();
     }
-  }
+
+    if (pts.size() < exits_sym.size()) {
+        throw std::runtime_error("generateKruskalMaze: not enough walkable cells for the requested exits");
+    }
+
+    for (char ex : exits_sym) {
+        if (!pts.empty()) {
+            field_(pts.back().first, pts.back().second).setCell(ex);
+            setConnect(ex);
+            pts.pop_back();
+        }
+    }
 }
+
 
 void Labyrinth::Matrix::writePath(char to) {
     // ---------- 1. locate the exit cell with minimal distance ----------
