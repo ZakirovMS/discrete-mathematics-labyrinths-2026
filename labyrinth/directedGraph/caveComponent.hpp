@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <limits>
 
-namespace zakirov
+namespace Labyrinth
 {
   class CaveComponent
   {

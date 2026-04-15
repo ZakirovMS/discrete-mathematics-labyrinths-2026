@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <map>
 
-namespace zakirov
+namespace Labyrinth
 {
   class Node
   {

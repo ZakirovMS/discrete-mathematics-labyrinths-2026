@@ -4,7 +4,7 @@
 #include <map>
 #include "node.hpp"
 
-namespace zakirov
+namespace Labyrinth
 {
   class DirectedGraph
   {

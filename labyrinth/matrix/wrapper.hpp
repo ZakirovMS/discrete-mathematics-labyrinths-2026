@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace zakirov
+namespace Labyrinth
 {
   template< class T >
   struct ArrayWrapper

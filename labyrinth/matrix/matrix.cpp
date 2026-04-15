@@ -9,7 +9,7 @@ namespace
 
 }
 
-void zakirov::Matrix::clearMetadata()
+void Labyrinth::Matrix::clearMetadata()
 {
   for (auto i = ties_.begin(); i != ties_.end(); ++i)
   {
@@ -26,59 +26,51 @@ void zakirov::Matrix::clearMetadata()
 }
 
 //Get rid of duplication
-bool zakirov::Matrix::expandWave(std::vector< std::pair < size_t, size_t > > & from, std::vector< std::pair < size_t, size_t > > & to)
+bool Labyrinth::Matrix::expandWave(std::vector< std::pair < size_t, size_t > > & from, std::vector< std::pair < size_t, size_t > > & to)
 {
-  bool flag = true;
+  size_t addedCells = 0;
   bool returnable = false;
+
   std::vector< std::pair < size_t, size_t > > stub;
 
   for (size_t i = 0; i < from.size(); ++i)
   {
     size_t row = from[i].first;
     size_t col = from[i].second;
-    if (row != 0)
+
+    if (field_(row - 1, col).isPassable() && !field_(row - 1, col).isVisited())
     {
-      if (field_(row - 1, col).isPassable() && !field_(row - 1, col).isVisited())
-      {
-        stub.push_back(std::make_pair(row - 1, col));
-        field_(row - 1, col).visitCell();
-        flag = false;
-      }
+      stub.push_back(std::make_pair(row - 1, col));
+      field_(row - 1, col).visitCell();
+      ++addedCells;
     }
-    if (row != scopes_.first - 1)
+    if (field_(row + 1, col).isPassable() && !field_(row + 1, col).isVisited())
     {
-      if (field_(row + 1, col).isPassable() && !field_(row + 1, col).isVisited())
-      {
-        stub.push_back(std::make_pair(row + 1, col));
-        field_(row + 1, col).visitCell();
-        flag = false;
-      }
+      stub.push_back(std::make_pair(row + 1, col));
+      field_(row + 1, col).visitCell();
+      ++addedCells;
     }
-    if (col != 0)
+    if (field_(row, col - 1).isPassable() && !field_(row, col - 1).isVisited())
     {
-      if (field_(row, col - 1).isPassable() && !field_(row, col - 1).isVisited())
-      {
-        stub.push_back(std::make_pair(row, col - 1));
-        field_(row, col - 1).visitCell();
-        flag = false;
-      }
+      stub.push_back(std::make_pair(row, col - 1));
+      field_(row, col - 1).visitCell();
+      ++addedCells;
     }
-    if (col != scopes_.second - 1)
+    if (field_(row, col + 1).isPassable() && !field_(row, col + 1).isVisited())
     {
-      if (field_(row, col + 1).isPassable() && !field_(row, col + 1).isVisited())
-      {
-        stub.push_back(std::make_pair(row, col + 1));
-        field_(row, col + 1).visitCell();
-        flag = false;
-      }
+      stub.push_back(std::make_pair(row, col + 1));
+      field_(row, col + 1).visitCell();
+      ++addedCells;
     }
-    if (flag)
+
+
+    if (!addedCells)
     {
       stub.push_back(std::make_pair(from[i].first, from[i].second));
     }
     else
     {
-      flag = true;
+      addedCells = 0;
       returnable = true;
     }
   }
@@ -94,47 +86,47 @@ bool zakirov::Matrix::expandWave(std::vector< std::pair < size_t, size_t > > & f
   return returnable;
 }
 
-void zakirov::Matrix::setScopes(std::pair< size_t, size_t > scope)
+void Labyrinth::Matrix::setScopes(std::pair< size_t, size_t > scope)
 {
   scopes_ = scope;
 }
 
-std::pair< size_t, size_t > zakirov::Matrix::getScopes()
+std::pair< size_t, size_t > Labyrinth::Matrix::getScopes()
 {
   return scopes_;
 }
 
-void zakirov::Matrix::setEntry(std::pair< size_t, size_t > entry)
+void Labyrinth::Matrix::setEntry(std::pair< size_t, size_t > entry)
 {
   entry_ = entry;
 }
 
-std::pair< size_t, size_t > zakirov::Matrix::getEntry()
+std::pair< size_t, size_t > Labyrinth::Matrix::getEntry()
 {
   return entry_;
 }
 
-void zakirov::Matrix::setConnect(char connect)
+void Labyrinth::Matrix::setConnect(char connect)
 {
   ties_.push_back(std::make_pair(connect, std::numeric_limits< size_t >::max()));
 }
 
-std::list< std::pair < char, size_t > > & zakirov::Matrix::getConnect()
+std::list< std::pair < char, size_t > > & Labyrinth::Matrix::getConnect()
 {
   return ties_;
 }
 
-void zakirov::Matrix::setField(ArrayWrapper< CaveComponent > & field)
+void Labyrinth::Matrix::setField(ArrayWrapper< CaveComponent > & field)
 {
   field_ = field;
 }
 
-zakirov::ArrayWrapper< zakirov::CaveComponent > & zakirov::Matrix::getField()
+Labyrinth::ArrayWrapper< Labyrinth::CaveComponent > & Labyrinth::Matrix::getField()
 {
   return field_;
 }
     
-void zakirov::Matrix::showMatrix()
+void Labyrinth::Matrix::showMatrix()
 {
   std::cout << scopes_.first << ' ' << scopes_.second << '\n' << "connects:";
   for (auto i = ties_.begin(); i != ties_.end(); ++i)
@@ -167,16 +159,26 @@ void zakirov::Matrix::showMatrix()
   std::cout << '\n';
 }
 
-std::istream & zakirov::operator>>(std::istream & in, zakirov::Matrix & layer)
+std::istream & Labyrinth::operator>>(std::istream & in, Labyrinth::Matrix & layer)
 {
   std::pair< size_t, size_t > scope;
   in >> scope.first >> scope.second;
   layer.setScopes(scope);
-  ArrayWrapper< CaveComponent > field(scope.first, scope.second);
+  ArrayWrapper< CaveComponent > field(scope.first + 1, scope.second + 1);
   char el;
   for (size_t i = 0; i < scope.first; ++i)
   {
-    for (size_t j = 0; j < scope.second; ++j)
+    field(i, 0).setCell('#');
+  }
+
+  for (size_t j = 0; j < scope.second; ++j)
+  {
+    field(0, j).setCell('#');
+  }
+
+  for (size_t i = 1; i < scope.first - 1; ++i)
+  {
+    for (size_t j = 1; j < scope.second - 1; ++j)
     {
       in >> el;
       if (el == '+')
@@ -187,6 +189,10 @@ std::istream & zakirov::operator>>(std::istream & in, zakirov::Matrix & layer)
       {
         layer.setConnect(el);
       }
+      else
+      {
+        throw std::logic_error("ERROR: Invalid input");
+      }
 
       field(i, j).setCell(el);
     }
@@ -196,7 +202,7 @@ std::istream & zakirov::operator>>(std::istream & in, zakirov::Matrix & layer)
   return in;
 }
 
-void zakirov::Matrix::waveAlgo()
+void Labyrinth::Matrix::waveAlgo()
 {
   size_t counter = 0;
   field_(entry_.first, entry_.second).setDist(counter);
@@ -226,25 +232,8 @@ void zakirov::Matrix::waveAlgo()
     wave.clear();
   }
 }
-/*
-void zakirov::Matrix::writePath(char to)
-{
-  if (field_(entry_.first, entry_.second).getDist() == std::numeric_limits< size_t >::max())
-  {
-    throw std::logic_error("No pathfinding was performed");
-  }
 
-  if (std::find(field_.begin(), field_.end(), std::make_pair(to, std::numeric_limits< size_t >::max())) != field_.end())
-  {
-    throw std::logic_error("No way to target");
-  }
-
-  auto curr_pos = std::find_if(field_.begin(), field_.end(), std::bind(std::equal_to< char >(), std::bind(&CaveComponent::getCell, std::placeholders::_1), to));
-
-}
-*/
-
-void zakirov::Matrix::showTechInfo()
+void Labyrinth::Matrix::showTechInfo()
 {
   for (size_t i = 0; i < scopes_.first; ++i)
   {
