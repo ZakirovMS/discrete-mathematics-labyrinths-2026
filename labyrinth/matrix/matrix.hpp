@@ -4,8 +4,8 @@
 #include <vector>
 #include <iostream>
 #include <list>
+#include "caveComponent.hpp"
 #include "../directedGraph/node.hpp"
-#include "../directedGraph/caveComponent.hpp"
 #include "wrapper.hpp"
 
 namespace Labyrinth
