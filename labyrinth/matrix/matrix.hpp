@@ -33,8 +33,6 @@ namespace Labyrinth
     void showMatrix();
     void clearMetadata();
     void showTechInfo();
-
-    void writePath(char to);
   private:
     bool expandWave(std::vector< std::pair< size_t, size_t > > & from, std::vector< std::pair< size_t, size_t > > & to);
     std::pair< size_t, size_t > scopes_;
