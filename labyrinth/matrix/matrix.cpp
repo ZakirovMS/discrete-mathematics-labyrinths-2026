@@ -3,11 +3,46 @@
 #include <algorithm>
 #include <stdexcept>
 #include <functional>
+#include <random>
+#include <numeric>
 
-namespace
-{
+namespace {
+ class DSU {
+  private:
+    std::vector<size_t> parent;
+    std::vector<size_t> rank;
+  public:
+    DSU(size_t n) {
+      parent.resize(n);
+      rank.resize(n, 0);
+      std::iota(parent.begin(), parent.end(), 0);
+    }
+    size_t find(size_t i) {
+      if (parent[i] == i) return i;
+      return parent[i] = find(parent[i]);
+    }
+    void unite(size_t i, size_t j) {
+      size_t root_i = find(i);
+      size_t root_j = find(j);
+      if (root_i != root_j) {
+        if (rank[root_i] < rank[root_j]) {
+          parent[root_i] = root_j;
+        } else if (rank[root_i] > rank[root_j]) {
+          parent[root_j] = root_i;
+        } else {
+          parent[root_j] = root_i;
+          rank[root_i]++;
+        }
+      }
+    }
+ };
 
-}
+ struct Edge {
+    size_t r1, c1; // ID комнаты 1
+    size_t r2, c2; // ID комнаты 2
+    size_t wr, wc; // Координаты стены в матрице
+  };
+};
 
 void Labyrinth::Matrix::clearMetadata()
 {
@@ -25,8 +60,7 @@ void Labyrinth::Matrix::clearMetadata()
   }
 }
 
-//Get rid of duplication
-bool Labyrinth::Matrix::expandWave(std::vector< std::pair < size_t, size_t > > & from, std::vector< std::pair < size_t, size_t > > & to)
+bool Labyrinth::Matrix::expandWave(std::vector<std::pair<size_t, size_t>>& from, std::vector<std::pair<size_t, size_t>>& to)
 {
   bool flag = true;
   bool returnable = false;
@@ -126,7 +160,7 @@ Labyrinth::ArrayWrapper< Labyrinth::CaveComponent > & Labyrinth::Matrix::getFiel
 {
   return field_;
 }
-    
+
 void Labyrinth::Matrix::showMatrix()
 {
   std::cout << scopes_.first << ' ' << scopes_.second << '\n' << "connects:";
@@ -205,13 +239,14 @@ void Labyrinth::Matrix::waveAlgo()
         field_(wave[i].first, wave[i].second).setDist(counter);
       }
 
-      if (field_(wave[i].first, wave[i].second).isExit())
-      {
-        auto it = std::find(ties_.begin(), ties_.end(), std::make_pair(field_(wave[i].first, wave[i].second).getCell(), std::numeric_limits< size_t >::max()));
-        if (it != ties_.end())
-        {
-          it->second = counter;
-        }
+      if (field_(wave[i].first, wave[i].second).isExit()) {
+          char exitChar = field_(wave[i].first, wave[i].second).getCell();
+          // update **every** still‑unfilled entry that has this character
+          for (auto it = ties_.begin(); it != ties_.end(); ++it) {
+              if (it->first == exitChar && it->second == std::numeric_limits< size_t >::max()) {
+                  it->second = counter;            // distance of this exit instance
+              }
+          }
       }
     }
 
@@ -219,77 +254,6 @@ void Labyrinth::Matrix::waveAlgo()
     wave.clear();
   }
 }
-
-void Labyrinth::Matrix::writePath(char to)
-{
-  if (field_(entry_.first, entry_.second).getDist() == std::numeric_limits< size_t >::max())
-  {
-    throw std::logic_error("No pathfinding was performed");
-  }
-
-  size_t min = std::numeric_limits< size_t >::max();
-  std::pair< size_t, size_t > curr{entry_};
-  for (size_t i = 0; i < scopes_.first; ++i)
-  {
-    for (size_t j = 0; j < scopes_.second; ++j)
-    {
-      if (field_(i, j).getCell() == to && field_(i, j).getDist() < min)
-      {
-        min = field_(i, j).getDist();
-        curr = {i, j};
-      }
-    }
-  }
-
-  if (min == std::numeric_limits< size_t >::max())
-  {
-    throw std::logic_error("No way");
-  }
-
-  size_t row = curr.first;
-  size_t col = curr.second;
-  while (field_(row, col).getDist() != 1)
-  {
-    if (row != 0)
-    {
-      if (field_(row - 1, col).isPassable() && (field_(row, col).getDist() > field_(row - 1, col).getDist()))
-      {
-        field_(row - 1, col).setCell('*');
-        --row;
-        continue;
-      }
-    }
-    if (row != scopes_.first - 1)
-    {
-      if (field_(row + 1, col).isPassable() && (field_(row, col).getDist() > field_(row + 1, col).getDist()))
-      {
-        field_(row + 1, col).setCell('*');
-        ++row;
-        continue;
-      }
-    }
-    if (col != 0)
-    {
-      if (field_(row, col - 1).isPassable() && (field_(row, col).getDist() > field_(row, col - 1).getDist()))
-      {
-        field_(row, col - 1).setCell('*');
-        --col;
-        continue;
-      }
-    }
-    if (col != scopes_.second - 1)
-    {
-      if (field_(row, col + 1).isPassable() && (field_(row, col).getDist() > field_(row, col + 1).getDist()))
-      {
-        field_(row, col + 1).setCell('*');
-        ++col;
-        continue;
-      }
-    }
-
-  }
-}
-
 
 void Labyrinth::Matrix::showTechInfo()
 {
@@ -314,4 +278,134 @@ void Labyrinth::Matrix::showTechInfo()
 
     std::cout << '\n';
   }
+}
+
+void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym, bool step_by_step)
+{
+    scopes_ = std::make_pair(grid_rows, grid_cols);
+    field_ = ArrayWrapper< CaveComponent >(grid_rows, grid_cols);
+    ties_.clear();
+
+    for (size_t i = 0; i < grid_rows; ++i) {
+        for (size_t j = 0; j < grid_cols; ++j) {
+            field_(i, j).setCell('#');
+            field_(i, j).setDist(std::numeric_limits<size_t>::max());
+        }
+    }
+
+    size_t rooms_rows = (grid_rows + 1) / 2;
+    size_t rooms_cols = (grid_cols + 1) / 2;
+
+    for (size_t r = 0; r < rooms_rows; ++r) {
+        for (size_t c = 0; c < rooms_cols; ++c) {
+            field_(r * 2, c * 2).setCell('.');
+        }
+    }
+
+    std::vector< Edge > edges;
+    for (size_t r = 0; r < rooms_rows; ++r) {
+        for (size_t c = 0; c < rooms_cols; ++c) {
+            if (c < rooms_cols - 1 && c * 2 + 1 < grid_cols) {
+                edges.push_back({r, c, r, c + 1, r * 2, c * 2 + 1});
+            }
+            if (r < rooms_rows - 1 && r * 2 + 1 < grid_rows) {
+                edges.push_back({r, c, r + 1, c, r * 2 + 1, c * 2});
+            }
+        }
+    }
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(edges.begin(), edges.end(), g);
+
+    DSU dsu(rooms_rows * rooms_cols);
+    auto get_id = [&](size_t r, size_t c) { return r * rooms_cols + c; };
+
+    size_t step = 0;
+    for (const auto& e : edges) {
+        if (dsu.find(get_id(e.r1, e.c1)) != dsu.find(get_id(e.r2, e.c2))) {
+            dsu.unite(get_id(e.r1, e.c1), get_id(e.r2, e.c2));
+            field_(e.wr, e.wc).setCell('.');
+            ++step;
+            if (step_by_step) {
+                std::cout << "Step " << step << ": Removed wall at (" << e.wr << "," << e.wc << ")\n";
+                showMatrix();
+                std::cout << "\n";
+            }
+        }
+    }
+
+    std::vector<std::pair<size_t, size_t>> pts;
+    for (size_t i = 0; i < grid_rows; ++i) {
+        for (size_t j = 0; j < grid_cols; ++j) {
+            if (field_(i, j).isPath()) {
+                pts.push_back({i, j});
+            }
+        }
+    }
+    std::shuffle(pts.begin(), pts.end(), g);
+
+    if (!pts.empty()) {
+        entry_ = pts.back();
+        field_(entry_.first, entry_.second).setCell(entry_sym);
+        pts.pop_back();
+    }
+
+    if (pts.size() < exits_sym.size()) {
+        throw std::runtime_error("generateKruskalMaze: not enough walkable cells for the requested exits");
+    }
+
+    for (char ex : exits_sym) {
+        if (!pts.empty()) {
+            field_(pts.back().first, pts.back().second).setCell(ex);
+            setConnect(ex);
+            pts.pop_back();
+        }
+    }
+}
+
+
+void Labyrinth::Matrix::writePath(char to) {
+    // locate the exit cell with minimal distance
+    std::pair<size_t, size_t> curr = {0, 0};
+    size_t d = std::numeric_limits<size_t>::max();
+    bool found = false;
+
+    for (size_t i = 0; i < scopes_.first; ++i) {
+        for (size_t j = 0; j < scopes_.second; ++j) {
+            if (field_(i, j).getCell() == to) {
+                size_t cellDist = field_(i, j).getDist();
+                if (!found || cellDist < d) {
+                    curr = {i, j};
+                    d = cellDist;
+                    found = true;
+                }
+            }
+        }
+    }
+
+    if (!found || d == std::numeric_limits<size_t>::max())
+        return;
+
+    // walk back to distance 1 (the entry)
+    while (d > 1) {
+        --d;
+        size_t r = curr.first;
+        size_t c = curr.second;
+        int dr[] = {-1, 1, 0, 0};
+        int dc[] = {0, 0, -1, 1};
+
+        for (int k = 0; k < 4; ++k) {
+            size_t nr = r + dr[k];
+            size_t nc = c + dc[k];
+            if (nr < scopes_.first && nc < scopes_.second) {
+                if (field_(nr, nc).getDist() == d && field_(nr, nc).isPassable()) {
+                    curr = {nr, nc};
+                    if (field_(nr, nc).isPath())
+                        field_(nr, nc).setCell('*');
+                    break; // next step
+                }
+            }
+        }
+    }
 }

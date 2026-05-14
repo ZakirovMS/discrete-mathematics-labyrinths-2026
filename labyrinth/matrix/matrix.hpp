@@ -5,6 +5,7 @@
 #include <iostream>
 #include <list>
 #include "caveComponent.hpp"
+#include "../directedGraph/node.hpp"
 #include "wrapper.hpp"
 
 namespace Labyrinth
@@ -13,6 +14,9 @@ namespace Labyrinth
   {
   public:
     Matrix() = default;
+    void setName(const std::string& name) { name_ = name; }
+    std::string getName() const { return name_; }
+
     void setScopes(std::pair< size_t, size_t > scope);
     std::pair< size_t, size_t > getScopes();
     void setEntry(std::pair< size_t, size_t > entry);
@@ -21,6 +25,9 @@ namespace Labyrinth
     std::list< std::pair < char, size_t > > & getConnect();
     void setField(ArrayWrapper< CaveComponent > & field);
     ArrayWrapper< CaveComponent > & getField();
+
+    void generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym, bool step_by_step = false);
+
     void writePath(char to);
     void waveAlgo();
     void showMatrix();
@@ -32,6 +39,7 @@ namespace Labyrinth
     std::pair< size_t, size_t > entry_;
     ArrayWrapper< CaveComponent > field_;
     std::list< std::pair < char, size_t > > ties_;
+    std::string name_;
   };
 
   std::istream & operator>>(std::istream & in, Matrix & layer_c);
