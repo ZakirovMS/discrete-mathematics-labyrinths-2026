@@ -62,32 +62,63 @@ void Labyrinth::Matrix::clearMetadata()
 
 bool Labyrinth::Matrix::expandWave(std::vector<std::pair<size_t, size_t>>& from, std::vector<std::pair<size_t, size_t>>& to)
 {
-  bool added = false;
-  to.clear();
+  bool flag = true;
+  bool returnable = false;
+  std::vector< std::pair < size_t, size_t > > stub;
 
-  for (const auto& curr : from) {
-    size_t r = curr.first;
-    size_t c = curr.second;
-
-    // Смещения: вверх, вниз, влево, вправо
-    int dr[] = {-1, 1, 0, 0};
-    int dc[] = {0, 0, -1, 1};
-
-    for (int i = 0; i < 4; ++i) {
-      size_t nr = r + dr[i];
-      size_t nc = c + dc[i];
-
-      // Проверка границ и проходимости (не стена)
-      if (nr < scopes_.first && nc < scopes_.second) {
-        if (field_(nr, nc).isPassable() && !field_(nr, nc).isVisited()) {
-          field_(nr, nc).visitCell(); // Помечаем как посещенную
-          to.push_back({nr, nc});
-          added = true;
-        }
+  for (size_t i = 0; i < from.size(); ++i)
+  {
+    size_t row = from[i].first;
+    size_t col = from[i].second;
+    if (row != 0)
+    {
+      if (field_(row - 1, col).isPassable() && !field_(row - 1, col).isVisited())
+      {
+        stub.push_back(std::make_pair(row - 1, col));
+        field_(row - 1, col).visitCell();
+        flag = false;
       }
     }
+    if (row != scopes_.first - 1)
+    {
+      if (field_(row + 1, col).isPassable() && !field_(row + 1, col).isVisited())
+      {
+        stub.push_back(std::make_pair(row + 1, col));
+        field_(row + 1, col).visitCell();
+        flag = false;
+      }
+    }
+    if (col != 0)
+    {
+      if (field_(row, col - 1).isPassable() && !field_(row, col - 1).isVisited())
+      {
+        stub.push_back(std::make_pair(row, col - 1));
+        field_(row, col - 1).visitCell();
+        flag = false;
+      }
+    }
+    if (col != scopes_.second - 1)
+    {
+      if (field_(row, col + 1).isPassable() && !field_(row, col + 1).isVisited())
+      {
+        stub.push_back(std::make_pair(row, col + 1));
+        field_(row, col + 1).visitCell();
+        flag = false;
+      }
+    }
+    if (flag)
+    {
+      stub.push_back(std::make_pair(from[i].first, from[i].second));
+    }
+    else
+    {
+      flag = true;
+      returnable = true;
+    }
   }
-  return added;
+
+  std::swap(stub, to);
+  return returnable;
 }
 
 void Labyrinth::Matrix::setScopes(std::pair< size_t, size_t > scope)
@@ -168,21 +199,11 @@ std::istream & Labyrinth::operator>>(std::istream & in, Labyrinth::Matrix & laye
   std::pair< size_t, size_t > scope;
   in >> scope.first >> scope.second;
   layer.setScopes(scope);
-  ArrayWrapper< CaveComponent > field(scope.first + 1, scope.second + 1);
+  ArrayWrapper< CaveComponent > field(scope.first, scope.second);
   char el;
   for (size_t i = 0; i < scope.first; ++i)
   {
-    field(i, 0).setCell('#');
-  }
-
-  for (size_t j = 0; j < scope.second; ++j)
-  {
-    field(0, j).setCell('#');
-  }
-
-  for (size_t i = 1; i < scope.first - 1; ++i)
-  {
-    for (size_t j = 1; j < scope.second - 1; ++j)
+    for (size_t j = 0; j < scope.second; ++j)
     {
       in >> el;
       if (el == '+')
@@ -192,10 +213,6 @@ std::istream & Labyrinth::operator>>(std::istream & in, Labyrinth::Matrix & laye
       else if ((el >= 'A' && el <= 'Z') || (el >= 'a' && el <= 'z') || (el == '='))
       {
         layer.setConnect(el);
-      }
-      else
-      {
-        throw std::logic_error("ERROR: Invalid input");
       }
 
       field(i, j).setCell(el);
@@ -237,6 +254,77 @@ void Labyrinth::Matrix::waveAlgo()
     wave.clear();
   }
 }
+
+void Labyrinth::Matrix::writePath(char to)
+{
+  if (field_(entry_.first, entry_.second).getDist() == std::numeric_limits< size_t >::max())
+  {
+    throw std::logic_error("No pathfinding was performed");
+  }
+
+  size_t min = std::numeric_limits< size_t >::max();
+  std::pair< size_t, size_t > curr{entry_};
+  for (size_t i = 0; i < scopes_.first; ++i)
+  {
+    for (size_t j = 0; j < scopes_.second; ++j)
+    {
+      if (field_(i, j).getCell() == to && field_(i, j).getDist() < min)
+      {
+        min = field_(i, j).getDist();
+        curr = {i, j};
+      }
+    }
+  }
+
+  if (min == std::numeric_limits< size_t >::max())
+  {
+    throw std::logic_error("No way");
+  }
+
+  size_t row = curr.first;
+  size_t col = curr.second;
+  while (field_(row, col).getDist() != 1)
+  {
+    if (row != 0)
+    {
+      if (field_(row - 1, col).isPassable() && (field_(row, col).getDist() > field_(row - 1, col).getDist()))
+      {
+        field_(row - 1, col).setCell('*');
+        --row;
+        continue;
+      }
+    }
+    if (row != scopes_.first - 1)
+    {
+      if (field_(row + 1, col).isPassable() && (field_(row, col).getDist() > field_(row + 1, col).getDist()))
+      {
+        field_(row + 1, col).setCell('*');
+        ++row;
+        continue;
+      }
+    }
+    if (col != 0)
+    {
+      if (field_(row, col - 1).isPassable() && (field_(row, col).getDist() > field_(row, col - 1).getDist()))
+      {
+        field_(row, col - 1).setCell('*');
+        --col;
+        continue;
+      }
+    }
+    if (col != scopes_.second - 1)
+    {
+      if (field_(row, col + 1).isPassable() && (field_(row, col).getDist() > field_(row, col + 1).getDist()))
+      {
+        field_(row, col + 1).setCell('*');
+        ++col;
+        continue;
+      }
+    }
+
+  }
+}
+
 
 void Labyrinth::Matrix::showTechInfo()
 {

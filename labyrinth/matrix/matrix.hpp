@@ -28,6 +28,7 @@ namespace Labyrinth
 
     void generateKruskalMaze(size_t grid_rows, size_t grid_cols, char entry_sym, std::vector<char> exits_sym, bool step_by_step = false);
 
+    void writePath(char to);
     void waveAlgo();
     void showMatrix();
     void clearMetadata();
