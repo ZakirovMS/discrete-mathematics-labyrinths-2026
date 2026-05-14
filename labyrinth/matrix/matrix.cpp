@@ -255,77 +255,6 @@ void Labyrinth::Matrix::waveAlgo()
   }
 }
 
-void Labyrinth::Matrix::writePath(char to)
-{
-  if (field_(entry_.first, entry_.second).getDist() == std::numeric_limits< size_t >::max())
-  {
-    throw std::logic_error("No pathfinding was performed");
-  }
-
-  size_t min = std::numeric_limits< size_t >::max();
-  std::pair< size_t, size_t > curr{entry_};
-  for (size_t i = 0; i < scopes_.first; ++i)
-  {
-    for (size_t j = 0; j < scopes_.second; ++j)
-    {
-      if (field_(i, j).getCell() == to && field_(i, j).getDist() < min)
-      {
-        min = field_(i, j).getDist();
-        curr = {i, j};
-      }
-    }
-  }
-
-  if (min == std::numeric_limits< size_t >::max())
-  {
-    throw std::logic_error("No way");
-  }
-
-  size_t row = curr.first;
-  size_t col = curr.second;
-  while (field_(row, col).getDist() != 1)
-  {
-    if (row != 0)
-    {
-      if (field_(row - 1, col).isPassable() && (field_(row, col).getDist() > field_(row - 1, col).getDist()))
-      {
-        field_(row - 1, col).setCell('*');
-        --row;
-        continue;
-      }
-    }
-    if (row != scopes_.first - 1)
-    {
-      if (field_(row + 1, col).isPassable() && (field_(row, col).getDist() > field_(row + 1, col).getDist()))
-      {
-        field_(row + 1, col).setCell('*');
-        ++row;
-        continue;
-      }
-    }
-    if (col != 0)
-    {
-      if (field_(row, col - 1).isPassable() && (field_(row, col).getDist() > field_(row, col - 1).getDist()))
-      {
-        field_(row, col - 1).setCell('*');
-        --col;
-        continue;
-      }
-    }
-    if (col != scopes_.second - 1)
-    {
-      if (field_(row, col + 1).isPassable() && (field_(row, col).getDist() > field_(row, col + 1).getDist()))
-      {
-        field_(row, col + 1).setCell('*');
-        ++col;
-        continue;
-      }
-    }
-
-  }
-}
-
-
 void Labyrinth::Matrix::showTechInfo()
 {
   for (size_t i = 0; i < scopes_.first; ++i)
@@ -437,7 +366,7 @@ void Labyrinth::Matrix::generateKruskalMaze(size_t grid_rows, size_t grid_cols, 
 
 
 void Labyrinth::Matrix::writePath(char to) {
-    // ---------- 1. locate the exit cell with minimal distance ----------
+    // locate the exit cell with minimal distance
     std::pair<size_t, size_t> curr = {0, 0};
     size_t d = std::numeric_limits<size_t>::max();
     bool found = false;
@@ -456,9 +385,9 @@ void Labyrinth::Matrix::writePath(char to) {
     }
 
     if (!found || d == std::numeric_limits<size_t>::max())
-        return;                 // nothing to do
+        return;
 
-    // ---------- 2. walk back to distance 1 (the entry) ----------
+    // walk back to distance 1 (the entry)
     while (d > 1) {
         --d;
         size_t r = curr.first;
@@ -472,9 +401,9 @@ void Labyrinth::Matrix::writePath(char to) {
             if (nr < scopes_.first && nc < scopes_.second) {
                 if (field_(nr, nc).getDist() == d && field_(nr, nc).isPassable()) {
                     curr = {nr, nc};
-                    if (field_(nr, nc).isPath())          // only ordinary corridor
+                    if (field_(nr, nc).isPath())
                         field_(nr, nc).setCell('*');
-                    break;                                 // next step
+                    break; // next step
                 }
             }
         }
