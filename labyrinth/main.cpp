@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "matrix/matrix.hpp"
+#include "directedGraph/directedGraph.hpp"
 
 int main()
 {
@@ -42,11 +43,38 @@ int main()
     std::cout << "\n";
   }
 
-  Labyrinth::Matrix gradualOutput;
-  gradualOutput.setName("G");
-  gradualOutput.generateKruskalMaze(7, 7, '+', {'F'}, true);
-  gradualOutput.waveAlgo();
-  gradualOutput.writePath('=');
+  Labyrinth::DirectedGraph journey;
+  journey.setScopes('A', '=');  // глобальный вход и финальный выход
+
+  journey.addNode('A');
+  journey.addNode('B');
+  journey.addNode('C');
+  journey.addNode('D');
+  journey.addNode('E');
+  journey.addNode('=');
+
+  for (auto& tie : layerA.getConnect()) {
+      journey.connectNodes('A', tie.first, tie.second);
+  }
+  for (auto& tie : layerB.getConnect()) {
+      journey.connectNodes('B', tie.first, tie.second);
+  }
+  for (auto& tie : layerC.getConnect()) {
+      journey.connectNodes('C', tie.first, tie.second);
+  }
+  for (auto& tie : layerD.getConnect()) {
+      journey.connectNodes('D', tie.first, tie.second);
+  }
+  for (auto& tie : layerE.getConnect()) {
+      journey.connectNodes('E', tie.first, tie.second);
+  }
+
+
+  std::cout << "Суммарная длина: ";
+  std::cout << journey.getDistance() << "\n";
+
+  std::cout << "Кратчайший путь через все уровни: ";
+  journey.getPath();
 
   return 0;
 }
